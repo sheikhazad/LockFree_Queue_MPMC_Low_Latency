@@ -91,6 +91,9 @@ public:
     // Dequeue operation - Remove from head
     bool dequeue(T& out) {
         while (true) {
+            //old_head can't be outside loop in queue (unlike stack). 
+            //Because, In a stack pop, all correctness depends on one shared pointer (head).
+            //In a queue dequeue(), correctness depends on two shared pointers (head and head->next).
             Node* old_head = head.load(std::memory_order_acquire);
             Node* next = old_head->next.load(std::memory_order_acquire);
 

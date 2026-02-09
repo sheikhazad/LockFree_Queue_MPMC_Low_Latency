@@ -62,7 +62,7 @@ public:
                 // 3. CAS to link new node at end of the list
                 //    Publish new_node by linking it into old_tail->next
                 if (old_tail->next.compare_exchange_weak(old_tail_next, new_node,
-                        std::memory_order_release, // publish new_node
+                        std::memory_order_release, // publish new_node: Writing old_tail->next not just swinging node
                         std::memory_order_relaxed)) // failure = retry
                 {
                     //4. Try to swing tail to the new node (not mandatory but improves progress, so relax is enough)

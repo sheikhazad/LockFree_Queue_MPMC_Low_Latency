@@ -112,21 +112,22 @@ public:
             // 1. Load current head (dummy) with acquire so it's safe to dereference
             Node* old_head = head.load(std::memory_order_acquire);
             // 2. Read the next pointer; this is the real node we might consume
-            Node* next = old_head->next.load(std::memory_order_acquire);
+            Node* old_head_next = old_head->next.load(std::memory_order_acquire);
 
-            if (next == nullptr) {
+            if (old_head_next == nullptr) {
                 // Queue is logically empty: only dummy present
                 return false; 
             }
 
             //3. Attempt to swing head forward
-            if (head.compare_exchange_weak(old_head, next,
+            if (head.compare_exchange_weak(old_head, old_head_next,
                     // We use ACQUIRE (or ACQ_REL) so we synchronize with the producer that enqueued 'next'.
                     std::memory_order_acquire, // acquire on success: ensures we see next->data safely
                     std::memory_order_relaxed)) 
             {
-                //4. Now we "own" next, safe to read its data
-                out = next->data; // Or std::move(next->data) for complex T
+                //4. Now we "own" old_head_next, safe to read its data
+                //out = old_head_next->data; 
+                out = std::move(old_head_next->data) //for complex T
                 //delete old_head; // Node reclamation requires hazard pointers / epoch GC
                 return true;
             }

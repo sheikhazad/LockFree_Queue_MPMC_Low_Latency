@@ -55,13 +55,13 @@ public:
             // 1. Acquire: ensures old_tail is fully initialized before dereferencing
             Node* old_tail = tail.load(std::memory_order_acquire);
             // 2. Acquire pairs with the release CAS that linked next
-            Node* next = old_tail->next.load(std::memory_order_acquire);
+            Node* old_tail_next = old_tail->next.load(std::memory_order_acquire);
 
             // If tail is pointing to the real end
-            if (next == nullptr) {
+            if (old_tail_next == nullptr) {
                 // 3. CAS to link new node at end of the list
                 //    Publish new_node by linking it into old_tail->next
-                if (old_tail->next.compare_exchange_weak(next, new_node,
+                if (old_tail->next.compare_exchange_weak(old_tail_next, new_node,
                         std::memory_order_release, // publish new_node
                         std::memory_order_relaxed)) // failure = retry
                 {
@@ -73,7 +73,7 @@ public:
                     return;
                 }
 
-                //if (old_tail->next.compare_exchange_weak(next, new_node, ..) failed, 
+                //if (old_tail->next.compare_exchange_weak(old_tail_next, new_node, ..) failed, 
                 //it means another thread has made progress and appended a node. 
                 //But the old_tail pointer we're working with is now stale—still referencing the previous tail.
                 //we can reload old_tail immediately after failure so that:
@@ -89,7 +89,7 @@ public:
             } else {
                 // 5. Tail is behind → help advance it (optimization only)
                 // Tail not pointing to actual end, try to advance it
-                tail.compare_exchange_weak(old_tail, next,
+                tail.compare_exchange_weak(old_tail, old_tail_next,
                     std::memory_order_relaxed, 
                     std::memory_order_relaxed);
             }

@@ -109,18 +109,25 @@ public:
             //old_head can't be outside loop in queue (unlike stack). 
             //Because, In a stack pop, all correctness depends on one shared pointer (head).
             //In a queue dequeue(), correctness depends on two shared pointers (head and head->next).
+            // 1. Load current head (dummy) with acquire so it's safe to dereference
             Node* old_head = head.load(std::memory_order_acquire);
+            // 2. Read the next pointer; this is the real node we might consume
             Node* next = old_head->next.load(std::memory_order_acquire);
 
             if (next == nullptr) {
-                return false; // Queue is empty
+                // Queue is logically empty: only dummy present
+                return false; 
             }
 
-            // Attempt to swing head forward
+            //3. Attempt to swing head forward
             if (head.compare_exchange_weak(old_head, next,
-                    std::memory_order_release, std::memory_order_relaxed)) {
+                    // We use ACQUIRE (or ACQ_REL) so we synchronize with the producer that enqueued 'next'.
+                    std::memory_order_acquire, // acquire on success: ensures we see next->data safely
+                    std::memory_order_relaxed)) 
+            {
+                //4. Now we "own" next, safe to read its data
                 out = next->data; // Or std::move(next->data) for complex T
-                delete old_head; // Safe to reclaim dummy or consumed node
+                //delete old_head; // Node reclamation requires hazard pointers / epoch GC
                 return true;
             }
 

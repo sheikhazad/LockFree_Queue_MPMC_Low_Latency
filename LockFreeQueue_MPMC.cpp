@@ -45,21 +45,31 @@ public:
     }
 
     // Enqueue operation - Append at tail
+    // Enqueue operation – Michael & Scott MPMC queue
+    // Assumes construction (dummy node) completes before any threads start
     void enqueue(T const& value) {
         Node* new_node = new Node(value);
         new_node->next.store(nullptr, std::memory_order_relaxed);
 
         while (true) {
+            // 1. Acquire: ensures old_tail is fully initialized before dereferencing
             Node* old_tail = tail.load(std::memory_order_acquire);
+            // 2. Acquire pairs with the release CAS that linked next
             Node* next = old_tail->next.load(std::memory_order_acquire);
 
+            // If tail is pointing to the real end
             if (next == nullptr) {
-                // CAS to link new node at end of the list
+                // 3. CAS to link new node at end of the list
+                //    Publish new_node by linking it into old_tail->next
                 if (old_tail->next.compare_exchange_weak(next, new_node,
-                        std::memory_order_release, std::memory_order_relaxed)) {
-                    // Try to swing tail to the new node (not mandatory but improves progress)
+                        std::memory_order_release, // publish new_node
+                        std::memory_order_relaxed)) // failure = retry
+                {
+                    //4. Try to swing tail to the new node (not mandatory but improves progress, so relax is enough)
+                    // Advance tail (optimization; not part of correctness)
                     tail.compare_exchange_weak(old_tail, new_node,
-                        std::memory_order_release, std::memory_order_relaxed); // May fail unnecessarily
+                        std::memory_order_relaxed, 
+                        std::memory_order_relaxed); 
                     return;
                 }
 
@@ -72,11 +82,16 @@ public:
                 //3. help reduce unnecessary spinning (retries) and contention in tight loops.
                 //Reloading old_tail after a failed link attempt ensures we're not swinging tail toward an already outdated node.
                 // This is a common pattern in lock-free algorithms to ensure progress.
+
+                // CAS failed → someone else appended; refresh tail hint
+                // Optional: Not required for correctness. It is only a performance hint, not a correctness mechanism.
                 old_tail = tail.load(std::memory_order_relaxed); // Reload tail after failure
             } else {
+                // 5. Tail is behind → help advance it (optimization only)
                 // Tail not pointing to actual end, try to advance it
                 tail.compare_exchange_weak(old_tail, next,
-                    std::memory_order_release, std::memory_order_relaxed);
+                    std::memory_order_relaxed, 
+                    std::memory_order_relaxed);
             }
 
             // Optional: reduce contention with brief pause

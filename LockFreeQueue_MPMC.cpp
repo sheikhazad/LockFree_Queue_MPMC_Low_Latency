@@ -38,7 +38,14 @@ private:
     alignas(CACHE_LINE_SIZE) std::atomic<Node*> tail; // Points to newest node for enqueue
 
 public:
-    LockFreeQueue() {
+    
+    LockFreeQueue(const LockFreeQueue&) = delete;
+    LockFreeQueue& operator=(const LockFreeQueue&) = delete;
+    LockFreeQueue(LockFreeQueue&&) = delete;
+    LockFreeQueue& operator=(LockFreeQueue&&) = delete;
+
+    LockFreeQueue() 
+    {
         // Initialize queue with dummy node to simplify empty queue handling
         Node* dummy = new Node();
         head.store(dummy, std::memory_order_relaxed);
@@ -179,12 +186,6 @@ public:
            current = next;
        }
     }
-
-    // Disable copy/move operations
-    LockFreeQueue(const LockFreeQueue&) = delete;
-    LockFreeQueue& operator=(const LockFreeQueue&) = delete;
-    LockFreeQueue(LockFreeQueue&&) = delete;
-    LockFreeQueue& operator=(LockFreeQueue&&) = delete;
 };
 
 void pinThreadToCore(int threadIndex, int numaNode) {

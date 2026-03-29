@@ -25,7 +25,8 @@ constexpr size_t CACHE_LINE_SIZE = hardware_destructive_interference_size;
 template <typename T>
 class LockFreeQueue {
 private:
-    struct alignas(CACHE_LINE_SIZE) Node {
+    struct alignas(CACHE_LINE_SIZE) Node 
+   {
         T data;
         std::atomic<Node*> next;
 

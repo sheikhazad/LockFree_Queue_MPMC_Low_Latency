@@ -1,5 +1,6 @@
 #include <atomic>
 #include <cassert>
+#include <thread>
 #include <immintrin.h> // Required for _mm_pause()
 
 #ifndef hardware_destructive_interference_size
@@ -58,7 +59,8 @@ public:
                 // 3. CAS to link new node at end of the list
                 //    Publish new_node by linking it into old_tail->next
                 if (old_tail->next.compare_exchange_weak(old_tail_next, new_node,
-                        std::memory_order_release, // publish new_node: Writing old_tail->next not just swinging node
+                        std::memory_order_release, // Publish new_node by linking it into the queue.
+                                                   // Consumers can reach new_node only after this release CAS succeeds.
                         std::memory_order_relaxed)) // failure = retry
                 {
                     //4. Try to swing tail to the new node (not mandatory but improves progress, so relax is enough)
@@ -118,13 +120,14 @@ public:
             //3. Attempt to swing head forward
             if (head.compare_exchange_weak(old_head, old_head_next,
                     // We use ACQUIRE (or ACQ_REL) so we synchronize with the producer that enqueued 'next'.
-                    std::memory_order_acquire, // acquire on success: ensures we see next->data safely
+                    std::memory_order_acq_rel, // acquire on success: ensures we see next->data safely, also rel as we need to push new head
                     std::memory_order_relaxed)) 
             {
                 //4. Now we "own" old_head_next, safe to read its data
                 //out = old_head_next->data; 
                 out = std::move(old_head_next->data); //for complex T
-                //delete old_head; // Node reclamation requires hazard pointers / epoch GC
+                //Without hazard pointers, epoch reclamation, RCU, etc., this queue leaks memory.
+                //delete old_head; 
                 return true;
             }
 

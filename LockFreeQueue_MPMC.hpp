@@ -65,7 +65,8 @@ public:
                 {
                     //4. Try to swing tail to the new node (not mandatory but improves progress, so relax is enough)
                     // Advance tail (optimization; not part of correctness)
-                    tail.compare_exchange_weak(old_tail, new_node,
+                    //compare_exchange_weak may fail spuriously and need looping, so use compare_exchange_strong for simplicity here
+                    tail.compare_exchange_strong(old_tail, new_node,
                         std::memory_order_relaxed, 
                         std::memory_order_relaxed); 
                     return;
@@ -76,7 +77,8 @@ public:
             } else {
                 // 5. Someone already appended a node, but tail still points to an older node.
                 // Tail is behind → help advance it (optimization only)
-                tail.compare_exchange_weak(old_tail, old_tail_next,
+                //compare_exchange_weak may fail spuriously and need looping, so use compare_exchange_strong for simplicity here
+                tail.compare_exchange_strong(old_tail, old_tail_next,
                     std::memory_order_relaxed, 
                     std::memory_order_relaxed);
             }

@@ -70,7 +70,9 @@ public:
                     // CAS may fail spuriously, so strong CAS is used for simplicity
                     // This update is only a performance hint; correctness is unaffected
                     // because enqueue correctness is guaranteed by old_tail->next CAS (release) above
-                    //This publishes: only a pointer value (tail update), NOT the node, NOT data, NOT ordering needed for correctnesse
+                    // This updates only a pointer value (tail hint update),
+                    // it does NOT publish the node or its data and does NOT participate in synchronization.
+                    // The real publication happens via old_tail->next CAS (release) above
                     tail.compare_exchange_strong(old_tail, new_node,
                         std::memory_order_relaxed, 
                         std::memory_order_relaxed); 

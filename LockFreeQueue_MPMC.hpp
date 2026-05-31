@@ -1,13 +1,6 @@
 #include <atomic>
-#include <memory>
-#include <iostream>
-#include <thread>
-#include <vector>
 #include <cassert>
-#define _GNU_SOURCE  // Required for CPU affinity functions
-#include <sched.h>   // Contains cpu_set_t definition
-#include <pthread.h> // Required for pthread_setaffinity_np()
-//#include <emmintrin.h> // Required for _mm_pause()
+#include <immintrin.h> // Required for _mm_pause()
 
 #ifndef hardware_destructive_interference_size
 #define hardware_destructive_interference_size 64

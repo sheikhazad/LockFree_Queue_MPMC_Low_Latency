@@ -70,23 +70,12 @@ public:
                         std::memory_order_relaxed); 
                     return;
                 }
-
-                //if (old_tail->next.compare_exchange_weak(old_tail_next, new_node, ..) failed, 
-                //it means another thread has made progress and appended a node. 
-                //But the old_tail pointer we're working with is now stale—still referencing the previous tail.
-                //we can reload old_tail immediately after failure so that:
-                //1. ensure that we are always working with the latest tail.
-                //2. we avoid redundant CAS attempts on outdated pointers.
-                //3. help reduce unnecessary spinning (retries) and contention in tight loops.
-                //Reloading old_tail after a failed link attempt ensures we're not swinging tail toward an already outdated node.
-                // This is a common pattern in lock-free algorithms to ensure progress.
-
-                // CAS failed → someone else appended; refresh tail hint
-                // Optional: Not required for correctness. It is only a performance hint, not a correctness mechanism.
-                old_tail = tail.load(std::memory_order_relaxed); // Reload tail after failure
+                
+                //CAS failed → means another thread has made progress and appended a node. 
+                
             } else {
-                // 5. Tail is behind → help advance it (optimization only)
-                // Tail not pointing to actual end, try to advance it
+                // 5. Someone already appended a node, but tail still points to an older node.
+                // Tail is behind → help advance it (optimization only)
                 tail.compare_exchange_weak(old_tail, old_tail_next,
                     std::memory_order_relaxed, 
                     std::memory_order_relaxed);

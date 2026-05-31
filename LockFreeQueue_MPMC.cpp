@@ -7,7 +7,7 @@
 #define _GNU_SOURCE  // Required for CPU affinity functions
 #include <sched.h>   // Contains cpu_set_t definition
 #include <pthread.h> // Required for pthread_setaffinity_np()
-#include "LockFreeQueue_MPMC.hpp"
+#include "LockFreeQueueMPMC.hpp"
 
 constexpr int NUM_PRODUCERS = 4;
 constexpr int NUM_CONSUMERS = 4;
@@ -28,7 +28,7 @@ void pinThreadToCore(int threadIndex, int numaNode) {
 }
 
 int main() {
-    LockFreeQueue<int> queue;
+    LockFreeQueueMPMC<int> queue;
     std::vector<std::thread> threads;
 
     // Start producer threads

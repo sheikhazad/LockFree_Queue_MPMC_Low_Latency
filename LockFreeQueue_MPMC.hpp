@@ -12,7 +12,7 @@ constexpr size_t CACHE_LINE_SIZE = hardware_destructive_interference_size;
 
 //Michael & Scott queue
 template <typename T>
-class LockFreeQueue {
+class LockFreeQueueMPMC {
 private:
     struct alignas(CACHE_LINE_SIZE) Node 
    {
@@ -28,12 +28,12 @@ private:
 
 public:
     
-    LockFreeQueue(const LockFreeQueue&) = delete;
-    LockFreeQueue& operator=(const LockFreeQueue&) = delete;
-    LockFreeQueue(LockFreeQueue&&) = delete;
-    LockFreeQueue& operator=(LockFreeQueue&&) = delete;
+    LockFreeQueueMPMC(const LockFreeQueueMPMC&) = delete;
+    LockFreeQueueMPMC& operator=(const LockFreeQueueMPMC&) = delete;
+    LockFreeQueueMPMC(LockFreeQueueMPMC&&) = delete;
+    LockFreeQueueMPMC& operator=(LockFreeQueueMPMC&&) = delete;
 
-    LockFreeQueue() 
+    LockFreeQueueMPMC() 
     {
         // Initialize queue with dummy node to simplify empty queue handling
         Node* dummy = new Node();
@@ -155,7 +155,7 @@ public:
 
     }
 
-    ~LockFreeQueue() {
+    ~LockFreeQueueMPMC() {
         //Node* current = head.exchange(nullptr, std::memory_order_acquire);
         //Destructor is single-threaded by contract: 
         //since no other threads should be accessing the queue during destruction,

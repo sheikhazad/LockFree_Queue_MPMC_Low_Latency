@@ -123,7 +123,7 @@ public:
             {
                 //4. Now we "own" old_head_next, safe to read its data
                 //out = old_head_next->data; 
-                out = std::move(old_head_next->data) //for complex T
+                out = std::move(old_head_next->data); //for complex T
                 //delete old_head; // Node reclamation requires hazard pointers / epoch GC
                 return true;
             }

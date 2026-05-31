@@ -119,6 +119,7 @@ public:
                 //out = old_head_next->data; 
                 out = std::move(old_head_next->data); //for complex T
                 //Without hazard pointers, epoch reclamation, RCU, etc., this queue leaks memory.
+                //ABA is not triggered in practice as we do not reclaim and memory will not be reused
                 //delete old_head; 
                 return true;
             }

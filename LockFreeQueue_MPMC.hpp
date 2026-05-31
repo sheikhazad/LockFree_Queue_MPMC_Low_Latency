@@ -99,6 +99,7 @@ public:
             //Because, In a stack pop, all correctness depends on one shared pointer (head).
             //In a queue dequeue(), correctness depends on two shared pointers (head and head->next).
             // 1. Load current head (dummy) with acquire so it's safe to dereference
+            //head is never null as dummy node guarantees
             Node* old_head = head.load(std::memory_order_acquire);
             // 2. Read the next pointer; this is the real node we might consume
             Node* old_head_next = old_head->next.load(std::memory_order_acquire);
@@ -111,7 +112,7 @@ public:
             //3. Attempt to swing head forward
             if (head.compare_exchange_weak(old_head, old_head_next,
                     // We use ACQUIRE (or ACQ_REL) so we synchronize with the producer that enqueued 'next'.
-                    std::memory_order_acq_rel, // acquire on success: ensures we see next->data safely, also rel as we need to push new head
+                    std::memory_order_acquire, // acquire on success: ensures we see next->data safely
                     std::memory_order_relaxed)) 
             {
                 //4. Now we "own" old_head_next, safe to read its data

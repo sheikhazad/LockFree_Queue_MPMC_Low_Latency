@@ -58,14 +58,19 @@ public:
             if (old_tail_next == nullptr) {
                 // 3. CAS to link new node at end of the list
                 //    Publish new_node by linking it into old_tail->next
+                // This publishes: the new node, the node’s data, all prior writes to that node
+                // This is the ONLY real publish point
                 if (old_tail->next.compare_exchange_weak(old_tail_next, new_node,
                         std::memory_order_release, // Publish new_node by linking it into the queue.
                                                    // Consumers can reach new_node only after this release CAS succeeds.
                         std::memory_order_relaxed)) // failure = retry
                 {
-                    //4. Try to swing tail to the new node (not mandatory but improves progress, so relax is enough)
+                    //4. Try to swing tail to the new node (not mandatory but improves progress)
                     // Advance tail (optimization; not part of correctness)
-                    //compare_exchange_weak may fail spuriously and need looping, so use compare_exchange_strong for simplicity here
+                    // CAS may fail spuriously, so strong CAS is used for simplicity
+                    // This update is only a performance hint; correctness is unaffected
+                    // because enqueue correctness is guaranteed by old_tail->next CAS (release) above
+                    //This publishes: only a pointer value (tail update), NOT the node, NOT data, NOT ordering needed for correctnesse
                     tail.compare_exchange_strong(old_tail, new_node,
                         std::memory_order_relaxed, 
                         std::memory_order_relaxed); 
